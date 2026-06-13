@@ -15,8 +15,23 @@ jobs:
       - uses: peaceiris/actions-hugo@v3
         with:
           hugo-version: latest
+          extended: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - run: hugo --minify
+
+      - name: Encrypt locked fragments
+        run: |
+          openssl enc -d -aes-256-cbc -pbkdf2 \
+            -in secrets.json.enc -out /tmp/secrets.json -pass pass:"$MASTER_KEY"
+          npm install cheerio --no-save
+          node scripts/encrypt-fragments.mjs
+          rm -f /tmp/secrets.json
+        env:
+          MASTER_KEY: ${{ secrets.MASTER_KEY }}
 
       - uses: peaceiris/actions-gh-pages@v4
         with:
