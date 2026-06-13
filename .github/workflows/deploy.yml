@@ -23,6 +23,7 @@ jobs:
 
       - name: Decrypt posts
         run: |
+          mkdir -p content
           openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$MASTER_KEY" \
             -in posts.tar.enc | tar xzf - -C content
         env:
