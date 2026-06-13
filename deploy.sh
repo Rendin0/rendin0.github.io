@@ -13,10 +13,16 @@ if [ -z "$MASTER_KEY" ]; then
     exit 1
 fi
 
+
 if [ ! -f secrets.json ]; then
     echo "secrets.json not found"
     exit 1
 fi
+
+# encrypt content/posts
+tar czf - -C content posts | \
+  openssl enc -aes-256-cbc -pbkdf2 -salt -pass pass:"$MASTER_KEY" -out posts.tar.enc
+echo "Encrypted content/posts -> posts.tar.enc"
 
 # encrypt secrets.json
 openssl enc -aes-256-cbc -pbkdf2 -salt \

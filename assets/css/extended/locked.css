@@ -39,7 +39,7 @@
   padding: 0.6rem 1.5rem;
   border: none;
   border-radius: var(--radius);
-  background: var(--primary);
+  background: var(--code-bg);
   color: var(--theme);
   font-size: 1rem;
   cursor: pointer;

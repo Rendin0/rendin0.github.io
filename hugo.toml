@@ -15,3 +15,11 @@ defaultContentLanguage = "ru"
 [params]
   defaultTheme = "dark"
   ShowCodeCopyButtons = true
+
+[params.label]
+  text = "ReBlog"
+  icon = "/logo.png"
+  iconHeight = 32
+
+[params.assets]
+  favicon = "/logo.png"

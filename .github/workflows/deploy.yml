@@ -21,6 +21,13 @@ jobs:
         with:
           node-version: 20
 
+      - name: Decrypt posts
+        run: |
+          openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$MASTER_KEY" \
+            -in posts.tar.enc | tar xzf - -C content
+        env:
+          MASTER_KEY: ${{ secrets.MASTER_KEY }}
+
       - run: hugo --minify
 
       - name: Encrypt locked fragments
@@ -30,6 +37,7 @@ jobs:
           npm install cheerio --no-save
           node scripts/encrypt-fragments.mjs
           rm -f /tmp/secrets.json
+          rm -rf content/posts
         env:
           MASTER_KEY: ${{ secrets.MASTER_KEY }}
 
