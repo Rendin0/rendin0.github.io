@@ -1,4 +1,17 @@
-baseURL = 'https://example.org/'
-locale = 'en-us'
-title = 'My New Hugo Project'
+baseURL = 'https://rendin0.github.io/'
 theme = 'PaperMod'
+
+defaultContentLanguage = "ru"
+
+[languages]
+  [languages.en]
+    languageName = "English"
+    weight = 2
+    title = "ReBlog"
+  [languages.ru]
+    languageName = "Русский"
+    weight = 1
+    title = "ReBlog"
+[params]
+  defaultTheme = "dark"
+  ShowCodeCopyButtons = true
