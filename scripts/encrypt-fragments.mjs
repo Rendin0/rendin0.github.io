@@ -38,7 +38,7 @@ async function walk(dir) {
 
 async function processFile(path) {
   const html = await readFile(path, 'utf8');
-  const $ = cheerio.load(html, null, false);
+  const $ = cheerio.load(html);
   const blocks = $('.locked-content');
   if (blocks.length === 0) return;
 

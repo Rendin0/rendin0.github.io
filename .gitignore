@@ -2,3 +2,6 @@ public/
 resources/
 .hugo_build.lock
 secrets.json
+node_modules/
+package.json
+package-lock.json
