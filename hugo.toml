@@ -2,6 +2,7 @@ baseURL = 'https://rendin0.github.io/'
 theme = 'PaperMod'
 
 defaultContentLanguage = "ru"
+buildFuture = true
 
 [languages]
   [languages.en]
