@@ -23,9 +23,13 @@ jobs:
 
       - name: Decrypt posts
         run: |
-          mkdir -p content
-          openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$MASTER_KEY" \
-            -in posts.tar.enc | tar xzf - -C content
+          mkdir -p content/posts
+          shopt -s nullglob
+          for enc in enc/*.md.enc; do
+            base=$(basename "$enc" .enc)
+            openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$MASTER_KEY" \
+              -in "$enc" -out "content/posts/$base"
+          done
         env:
           MASTER_KEY: ${{ secrets.MASTER_KEY }}
 
@@ -46,3 +50,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
+          force_orphan: true

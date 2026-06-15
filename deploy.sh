@@ -20,17 +20,13 @@ if [ ! -f secrets.json ]; then
 fi
 
 # encrypt content/posts
-tar czf - -C content posts | \
-  openssl enc -aes-256-cbc -pbkdf2 -salt -pass pass:"$MASTER_KEY" -out posts.tar.enc
-echo "Encrypted content/posts -> posts.tar.enc"
+./lock_posts.sh "$MASTER_KEY"
 
 # encrypt secrets.json
-openssl enc -aes-256-cbc -pbkdf2 -salt \
-    -in secrets.json -out secrets.json.enc -pass pass:"$MASTER_KEY"
-echo "Encrypted: secrets.json -> secrets.json.enc"
+./lock_secrets.sh "$MASTER_KEY"
 
 git add -A
-git commit -m "$1"
+git commit -m "$1" || { echo "Nothing to commit"; exit 0; }
 git push
 
 echo "Pushed: $1"
