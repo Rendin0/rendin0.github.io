@@ -41,4 +41,6 @@ for enc in enc/*.enc; do
   fi
 done
 
-[ "$changed" -eq 0 ] && echo "No changes."
+if [ "$changed" -eq 0 ]; then
+  echo "No changes."
+fi
