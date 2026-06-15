@@ -31,7 +31,6 @@ for md in content/posts/*.md; do
   fi
 done
 
-# убрать .enc для удалённых постов
 for enc in enc/*.enc; do
   if [ -z "${keep[$enc]}" ]; then
     rm -f "$enc"
