@@ -20,15 +20,24 @@ openssl enc -d -aes-256-cbc -pbkdf2 \
 echo "Decrypted: secrets.json.enc -> secrets.json"
 
 # --- posts ---
-if [ ! -f posts.tar.enc ]; then
-    echo "posts.tar.enc not found"
+# Mirror of lock_posts.sh: enc/<path>.enc -> content/posts/<path>
+if [ ! -d enc ] || [ -z "$(find enc -type f -name '*.enc' -print -quit)" ]; then
+    echo "No sealed posts in enc/"
     exit 1
 fi
 if [ -d content/posts ] && [ -n "$(ls -A content/posts 2>/dev/null)" ]; then
     read -p "content/posts is not empty. Overwrite? (y/N) " ans
     [ "$ans" = "y" ] || { echo "Cancelled"; exit 0; }
 fi
-mkdir -p content
-openssl enc -d -aes-256-cbc -pbkdf2 \
-    -in posts.tar.enc -pass pass:"$MASTER_KEY" | tar xzf - -C content
-echo "Decrypted: posts.tar.enc -> content/posts/"
+
+count=0
+while IFS= read -r -d '' enc; do
+    rel=${enc#enc/}
+    out="content/posts/${rel%.enc}"
+    mkdir -p "$(dirname "$out")"
+    openssl enc -d -aes-256-cbc -pbkdf2 \
+        -in "$enc" -out "$out" -pass pass:"$MASTER_KEY"
+    count=$((count + 1))
+done < <(find enc -type f -name '*.enc' -print0)
+
+echo "Decrypted: $count file(s) -> content/posts/"

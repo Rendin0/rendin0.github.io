@@ -24,12 +24,15 @@ jobs:
       - name: Decrypt posts
         run: |
           mkdir -p content/posts
-          shopt -s nullglob
-          for enc in enc/*.md.enc; do
-            base=$(basename "$enc" .enc)
+          # enc/ mirrors the content/posts tree (page bundles: markdown plus
+          # images), so restore directories, not just top-level files.
+          while IFS= read -r -d '' enc; do
+            rel=${enc#enc/}
+            out="content/posts/${rel%.enc}"
+            mkdir -p "$(dirname "$out")"
             openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$MASTER_KEY" \
-              -in "$enc" -out "content/posts/$base"
-          done
+              -in "$enc" -out "$out"
+          done < <(find enc -type f -name '*.enc' -print0)
         env:
           MASTER_KEY: ${{ secrets.MASTER_KEY }}
 

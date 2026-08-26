@@ -53,3 +53,42 @@
   color: #ff6b6b;
   margin-top: 1rem;
 }
+.post-img {
+  display: block;
+  margin: 1.25rem 0;
+}
+
+.post-img img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+
+.post-img-cap {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--secondary);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Encrypted images carry no src until the reader unlocks the post, so reserve
+   the space up front: width/height keep the layout from jumping and let the
+   lazy decrypt actually stay lazy. */
+.enc-img {
+  background: var(--entry);
+  border-radius: var(--radius);
+  min-height: 2rem;
+}
+
+.enc-img[data-enc-state="loading"] {
+  opacity: 0.6;
+}
+
+.enc-img[data-enc-state="failed"] {
+  outline: 1px dashed #ff6b6b;
+}
+
+.enc-img[data-enc-state="done"] {
+  background: none;
+}

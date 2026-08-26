@@ -2,6 +2,11 @@
 set -e
 MASTER_KEY=$1
 
+if [ -z "$MASTER_KEY" ]; then
+  echo "Usage: ./lock_posts.sh <master-key>"
+  exit 1
+fi
+
 mkdir -p enc
 hashfile=".posthashes"
 touch "$hashfile"
@@ -12,34 +17,48 @@ put_hash() {
     "$hashfile" > "$hashfile.tmp"
   mv "$hashfile.tmp" "$hashfile"
 }
+drop_hash() {
+  awk -F'\t' -v n="$1" '$1!=n' "$hashfile" > "$hashfile.tmp"
+  mv "$hashfile.tmp" "$hashfile"
+}
 
 changed=0
 declare -A keep
-shopt -s nullglob
 
-for md in content/posts/*.md; do
-  name=$(basename "$md")
-  enc="enc/$name.enc"
-  keep["$enc"]=1
+# Posts are page bundles now (content/posts/<slug>/index.<lang>.md + images), so
+# every file under content/posts is sealed, not just markdown. Paths are
+# mirrored into enc/ one file at a time: sealing a whole tarball instead would
+# rewrite a multi-megabyte blob in git history on every screenshot edit.
+if [ -d content/posts ]; then
+  while IFS= read -r -d '' src; do
+    rel=${src#content/posts/}
+    enc="enc/$rel.enc"
+    keep["$enc"]=1
 
-  new=$(sha256sum "$md" | cut -d' ' -f1)
-  if [ "$new" != "$(old_hash "$name")" ]; then
-    openssl enc -aes-256-cbc -pbkdf2 -salt -pass pass:"$MASTER_KEY" -in "$md" -out "$enc"
-    put_hash "$name" "$new"
-    echo "Sealed: $name"
-    changed=1
-  fi
-done
+    new=$(sha256sum "$src" | cut -d' ' -f1)
+    if [ "$new" != "$(old_hash "$rel")" ]; then
+      mkdir -p "$(dirname "$enc")"
+      openssl enc -aes-256-cbc -pbkdf2 -salt -pass pass:"$MASTER_KEY" -in "$src" -out "$enc"
+      put_hash "$rel" "$new"
+      echo "Sealed: $rel"
+      changed=1
+    fi
+  done < <(find content/posts -type f -print0)
+fi
 
-for enc in enc/*.enc; do
-  if [ -z "${keep[$enc]}" ]; then
-    rm -f "$enc"
-    base=$(basename "$enc" .enc)
-    awk -F'\t' -v n="$base" '$1!=n' "$hashfile" > "$hashfile.tmp" && mv "$hashfile.tmp" "$hashfile"
-    echo "Removed stale: $enc"
-    changed=1
-  fi
-done
+if [ -d enc ]; then
+  while IFS= read -r -d '' enc; do
+    if [ -z "${keep[$enc]}" ]; then
+      rm -f "$enc"
+      rel=${enc#enc/}
+      drop_hash "${rel%.enc}"
+      echo "Removed stale: $enc"
+      changed=1
+    fi
+  done < <(find enc -type f -name '*.enc' -print0)
+
+  find enc -mindepth 1 -type d -empty -delete
+fi
 
 if [ "$changed" -eq 0 ]; then
   echo "No changes."

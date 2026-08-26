@@ -1,0 +1,49 @@
+{{- /* Resolves markdown images to page-bundle resources.
+
+     Works both in normal page content and inside {{< locked >}} (which renders
+     its body via .Page.RenderString, so .PageInner carries the real page).
+
+     Large images are downscaled and re-encoded to webp: locked images end up
+     inside an AES-GCM blob that the reader downloads, so bytes matter.
+
+     Caption comes from the markdown title: ![alt](img/01.png "caption")
+*/ -}}
+{{- $p := or .PageInner .Page -}}
+{{- $dest := .Destination -}}
+{{- $r := "" -}}
+{{- if not (urls.Parse $dest).IsAbs -}}
+  {{- $r = $p.Resources.GetMatch $dest -}}
+  {{- if not $r -}}
+    {{- $r = resources.Get $dest -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $src := $dest -}}
+{{- $w := 0 -}}
+{{- $h := 0 -}}
+{{- with $r -}}
+  {{- $img := . -}}
+  {{- if in (slice "png" "jpeg" "bmp" "tiff") .MediaType.SubType -}}
+    {{- if gt .Width 1400 -}}
+      {{- $img = .Resize "1400x webp q80" -}}
+    {{- else -}}
+      {{- $img = .Process "webp q80" -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $src = $img.RelPermalink -}}
+  {{- $w = $img.Width -}}
+  {{- $h = $img.Height -}}
+{{- end -}}
+
+{{- if not $r -}}
+  {{- warnf "render-image: no resource for %q on %s" $dest $p.Path -}}
+{{- end -}}
+
+{{- /* Inline elements only: markdown wraps a lone image in <p>, and a <figure>
+       there would be re-parented by the HTML parser, breaking the locked block. */ -}}
+<span class="post-img">
+  <img src="{{ $src }}" alt="{{ .Text }}"
+    {{- with $w }} width="{{ . }}"{{ end }}
+    {{- with $h }} height="{{ . }}"{{ end }} loading="lazy" decoding="async">
+  {{- with .Title }}<span class="post-img-cap">{{ . }}</span>{{ end -}}
+</span>
