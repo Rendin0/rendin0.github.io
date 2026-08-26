@@ -76,20 +76,25 @@ const freeRefs = new Set();    // safe to publish
 const lockedRefs = new Set();  // must not survive in public/
 const cleanDirs = new Set();   // resource dirs to sweep for orphans
 const pagesWithLocked = new Set();
+const missingSecrets = new Map(); // secret key -> pages that use it
 
 for (const file of htmlFiles) {
   const $ = cheerio.load(await readFile(file, 'utf8'));
   const blocks = $('.locked-content');
   if (blocks.length) pagesWithLocked.add(file);
 
+  for (const el of blocks.toArray()) {
+    const secretKey = $(el).attr('data-secret-key') ?? '';
+    if (secrets[secretKey]) continue;
+    const pages = missingSecrets.get(secretKey) ?? [];
+    pages.push(file);
+    missingSecrets.set(secretKey, pages);
+  }
+
   $('img[src]').each((_, el) => {
     const path = srcToPath($(el).attr('src'), file);
     if (!path) return;
-    const block = $(el).closest('.locked-content');
-    // A block whose password is missing stays in plaintext (see pass 2), so its
-    // images have to stay published too - otherwise they break silently.
-    const locked = block.length > 0 && !!secrets[block.attr('data-secret-key')];
-    if (locked) {
+    if ($(el).closest('.locked-content').length) {
       lockedRefs.add(path);
       cleanDirs.add(dirname(path));
     } else {
@@ -98,6 +103,18 @@ for (const file of htmlFiles) {
   });
 
   if (blocks.length) cleanDirs.add(dirname(file));
+}
+
+// A block with no password cannot be encrypted, and leaving it alone publishes
+// the whole section in plaintext. Fail here, before pass 2 writes anything, so
+// public/ is never left half-sealed for the deploy step to pick up.
+if (missingSecrets.size) {
+  for (const [secretKey, pages] of missingSecrets) {
+    console.error(`No secret for "${secretKey}", used on ${pages.length} page(s):`);
+    for (const p of pages) console.error(`  ${p.slice(PUBLIC.length + 1)}`);
+  }
+  console.error('Add the password to secrets.json and rebuild.');
+  process.exit(1);
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +145,8 @@ for (const file of pagesWithLocked) {
   for (const el of $('.locked-content').toArray()) {
     const secretKey = $(el).attr('data-secret-key');
     const password = secrets[secretKey];
-    if (!password) { console.warn(`No secret for ${secretKey}, skipping`); continue; }
+    // Pass 1 already refused to get here without a password.
+    if (!password) throw new Error(`No secret for ${secretKey} in ${file}`);
 
     const { salt, key } = await keyFor(secretKey, password);
 
