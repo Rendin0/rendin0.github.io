@@ -13,7 +13,7 @@ title:
 description: 
 date: $today
 tags: [\"\", \"\"]
-summary: 
+summary: placeholder
 ---
 
 
@@ -28,7 +28,7 @@ title:
 description: 
 date: $today
 tags: [\"\", \"\"]
-summary: 
+summary: placeholder
 ---
 
 
